@@ -1,11 +1,10 @@
 const BaseModel = require('../../utils/base-model');
 
-class AuthModel extends BaseModel{
+module.exports = new class extends BaseModel{
 
     constructor(){
         super();
     }
-
 
     static getSchema(){
         return{
@@ -22,6 +21,3 @@ class AuthModel extends BaseModel{
 
 
 }
-
-
-module.exports = new AuthModel();

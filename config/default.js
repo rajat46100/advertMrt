@@ -6,5 +6,5 @@ module.exports = {
     contactEmail:"rajat46100@gmail.com",
     host:"localhost",
     port:3000,
-    basePath:"/", 
+    basePath:"/api/v1", 
 }

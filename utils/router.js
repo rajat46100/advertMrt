@@ -1,6 +1,7 @@
 const { addSwaggerPath } = require('./init-swagger');
 const ErrorHandler = require('./error-handler');
 const Joi = require('joi');
+const APIResponse = require('./api.response');
 
 const GetExpressMiddlewares = (middlewares) => middlewares.map(middleware => MiddlewareWrapper(middleware));
 
@@ -9,19 +10,11 @@ const MiddlewareWrapper = (fn) => async function (req, res, next) {
     try {
         const response = await fn(req, res, next);
         if (response && !next) {
-            res.send({
-                success: false,
-                error: err,
-                data: null
-            });
+            res.send(APIResponse.SendSuccess(response));
         }
     }
     catch (err) {
-        res.send({
-            success: false,
-            error: err,
-            data: null
-        });
+        res.send(APIResponse.SendError(err));
     }
 }
 
@@ -77,6 +70,12 @@ class Router {
         return this;
     }
 
+    put(url, { queryParams = {}, bodyParams = {}, info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = [] ){
+        addSwaggerPath(this.baseUrl+url, 'put', info, consumes, produces, queryParams, bodyParams, this.moduleName);
+        this.router.put(url, QueryParamsValidator(queryParams), BodyParamsValidator(bodyParams), ...GetExpressMiddlewares(middlewares));
+        return this;    
+    }
+    
     mount(app) {
         app.use(this.baseUrl, this.router);
     }

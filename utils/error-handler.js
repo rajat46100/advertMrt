@@ -1,6 +1,5 @@
 class ErrorHandler  {
-
-
+    
     constructor(message, statusCode, type, stack = {}){
         this.message = message;
         this.statusCode = statusCode;
@@ -12,7 +11,9 @@ class ErrorHandler  {
        return new ErrorHandler(message, 400, 'ValidationError', stack);
     }
 
-    
+    static UnhandledError(message = 'Some Error Has Occured. Please try after some time', stack=[]){
+        return new ErrorHandler(message, 500, 'UnhandledError', stack);
+    }
 
     
 

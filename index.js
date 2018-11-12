@@ -1,18 +1,25 @@
 const express = require('express');
 const middlewares = require('./utils/middlewares');
 const modules = require('./modules');
-const config = require('config');
+const config = Object.assign(require('config'), process.env);
+
 const morgan = require('morgan');
 
 const app = express();
 
-middlewares.init(app);
+const baseApp = express();
 
-modules.init(app);
+app.use(config.basePath, baseApp);
+
+
+middlewares.init(baseApp);
+
+modules.init(baseApp);
 
 middlewares.initializeSwaggerExplorer(app);
 
 app.use(morgan('common'));
+
 
 app.listen(config.port, ()=>{
     console.log(`Application is listening on http://${config.host}:${config.port}`);
