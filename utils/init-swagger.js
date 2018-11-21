@@ -1,10 +1,10 @@
 const SwaggerDoc = require('./swagger');
 const APIResponse = require('./api.response');
 
-exports.addSwaggerPath = (path, method, info, consumes, produces, queryParams = [], bodyParams = {}, moduleName) => {
+exports.addSwaggerPath = (path, method, info, consumes, produces, queryParams = [], bodyParams = {}, moduleName, auth) => {
     const { str, found } = _repl(path);
-    path = str + (found.length ? "/"+found.map(elm=> `{${elm}}`).join('/') : "");
-
+    console.log({found});
+    path = str;
     const bodyPrms = (_getBodyParam(bodyParams || {}));
     SwaggerDoc.paths = {
         ...SwaggerDoc.paths,
@@ -17,6 +17,9 @@ exports.addSwaggerPath = (path, method, info, consumes, produces, queryParams = 
                 parameters: [...(_getQueryParam(queryParams || [])), ..._getPathParams(found), ...(bodyPrms ? [bodyPrms] : [])],
                 produces: produces,
                 tags: [moduleName],
+                ...(auth ? { security: [{
+                    api_key:[]
+                }] } : {}),
                 responses: {
                     200: {
                         type: "object",
@@ -68,13 +71,33 @@ const _getBodyParam = (obj) => {
 
 }
 
+function replaceAt(name, index, repl) {
+       name = name.split(""); name.splice(index, 0, repl); name = name.join(""); return name 
+}
+   
 function _repl(str, found = []) {
-	let match = /(.+)(?:\/\:([a-zA-Z0-9]+)\/?)+/.exec(str);
-	if(match){
-		console.log(found);
-		found.push(match[2]);
-		return _repl(match[1], found);
-	}
-	return {str, found};
-
+   var regex = /{([^}]+)}/g;
+   var curMatch;
+   
+	   let index = str.indexOf(':');
+	   if(index !== -1) {
+		   str = str.replace(':', '{')
+		   let nextcolon = str.substring(index, str.length).indexOf('/');
+		   if (nextcolon!=-1) {
+            index = index+nextcolon;
+            str = replaceAt(str, index, '}');
+            while (curMatch = regex.exec(str)) {
+                found.push(curMatch[1]);
+            }
+            return _repl(str, found);
+        }
+		   else {
+		   str = str.concat('}');
+			   while (curMatch = regex.exec(str)) {
+				   found.push(curMatch[1]);
+			   }
+			   return {str,found}
+		   };
+	   }
+	   return { str, found };
 }

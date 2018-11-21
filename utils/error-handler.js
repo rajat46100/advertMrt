@@ -15,6 +15,18 @@ class ErrorHandler  {
         return new ErrorHandler(message, 500, 'UnhandledError', stack);
     }
 
+    static UnAuthorizedAccess(message = 'User is not authorized to use the system', stack={}){
+        return new ErrorHandler(message, 400, 'Authentication', stack);
+    }
+
+    static InvalidCredentials(message = 'Invalid Credentials Supplied', stack= {}){
+        return new ErrorHandler(message, 400, 'InvalidCredentials', stack);
+    }
+
+    static DataBaseConnectionError(message = "Error While Connecting to db", stack = {}){
+        return new ErrorHandler(message, 500, "DbConnectionError", stack);
+    }
+
     
 
 }

@@ -2,27 +2,35 @@ const { addSwaggerPath } = require('./init-swagger');
 const ErrorHandler = require('./error-handler');
 const Joi = require('joi');
 const APIResponse = require('./api.response');
+const logger = require('./logger');
 
-const GetExpressMiddlewares = (middlewares) => middlewares.map(middleware => MiddlewareWrapper(middleware));
+const GetExpressMiddlewares = (middlewares, log) => middlewares.map(middleware => MiddlewareWrapper(middleware, log));
 
 
-const MiddlewareWrapper = (fn) => async function (req, res, next) {
+const MiddlewareWrapper = (fn, log) => async function (req, res, next) {
+    const startTime = Date.now();
     try {
         const response = await fn(req, res, next);
-        if (response && !next) {
+        if (response || !next) {
+            if(log = 'info'){
+                logger.info({ url: req.url, response, createDate: new Date().toISOString(), responseTime: (Date.now() - startTime)/1000   });
+            }    
             res.send(APIResponse.SendSuccess(response));
         }
     }
     catch (err) {
+        if(['info', 'error'].find(logLevel=> logLevel === log)){
+            logger.error({ url: req.url, err, createDate: new Date().toISOString(), responseTime: (Date.now() - startTime)/1000    });
+        }
         res.send(APIResponse.SendError(err));
     }
 }
 
 
-const QueryParamsValidator = (queryObj) => {
+const QueryParamsValidator = (queryObj, log) => {
     return MiddlewareWrapper(async function (req, res, next) {
         try {
-            console.log('In Query Validator')
+            console.log('In Query Validator');
             await Joi.object(queryObj).validate(req.query);
             next();
         }
@@ -30,11 +38,11 @@ const QueryParamsValidator = (queryObj) => {
             const errorStack = err.details.map(detail => ({ key: ((detail || {}).context || {}).key, message: detail.message }));
             throw ErrorHandler.ValidationError('Parameters Validation Error', errorStack);
         }
-    })
+    }, log)
 }
 
 
-const BodyParamsValidator = (queryObj) => {
+const BodyParamsValidator = (queryObj, log) => {
     return MiddlewareWrapper(async function (req, res, next) {
         try {
             await Joi.object(queryObj).validate(req.body);
@@ -44,11 +52,13 @@ const BodyParamsValidator = (queryObj) => {
             const errorStack = err.details.map(detail => ({ key: ((detail || {}).context || {}).key, message: detail.message }));
             throw ErrorHandler.ValidationError('Parameters Validation Error', errorStack);
         }
-    })
+    }, log)
 }
 
 
-
+let _authenticationFn = async(req, res, next)=>{
+    next();
+}
 
 class Router {
 
@@ -58,21 +68,21 @@ class Router {
         this.baseUrl = baseUrl;
     }
 
-    get(url, { queryParams = {}, info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = []) {
-        addSwaggerPath(this.baseUrl+url, 'get', info, consumes, produces, queryParams, {}, this.moduleName);
-        this.router.get(url, QueryParamsValidator(queryParams), ...GetExpressMiddlewares(middlewares));
+    get(url, { queryParams = {}, auth = false, log = 'error', info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = []) {
+        addSwaggerPath(this.baseUrl+url, 'get', info, consumes, produces, queryParams, {}, this.moduleName, auth);
+        this.router.get(url,  auth ? MiddlewareWrapper(_authenticationFn, log) : (req, res, next) => next(), QueryParamsValidator(queryParams, log), ...GetExpressMiddlewares(middlewares, log));
         return this;
     }
 
-    post(url, { queryParams = {}, bodyParams = {}, info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = []) {
-        addSwaggerPath(this.baseUrl+url, 'post', info, consumes, produces, queryParams, bodyParams, this.moduleName);
-        this.router.post(url, QueryParamsValidator(queryParams), BodyParamsValidator(bodyParams), ...GetExpressMiddlewares(middlewares));
+    post(url, { queryParams = {}, bodyParams = {}, log = 'error', auth = false, info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = []) {
+        addSwaggerPath(this.baseUrl+url, 'post', info, consumes, produces, queryParams, bodyParams, this.moduleName, auth);
+        this.router.post(url,  auth ? MiddlewareWrapper(_authenticationFn, log) : (req, res, next) => next(), QueryParamsValidator(queryParams, log), BodyParamsValidator(bodyParams, log), ...GetExpressMiddlewares(middlewares, log));
         return this;
     }
 
-    put(url, { queryParams = {}, bodyParams = {}, info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = [] ){
-        addSwaggerPath(this.baseUrl+url, 'put', info, consumes, produces, queryParams, bodyParams, this.moduleName);
-        this.router.put(url, QueryParamsValidator(queryParams), BodyParamsValidator(bodyParams), ...GetExpressMiddlewares(middlewares));
+    put(url, { queryParams = {}, bodyParams = {}, auth = false, log = 'error', info = "", consumes = ["application/json"], produces = ["application/json"] }, middlewares = [] ){
+        addSwaggerPath(this.baseUrl+url, 'put', info, consumes, produces, queryParams, bodyParams, this.moduleName, auth);
+        this.router.put(url,  auth ? MiddlewareWrapper(_authenticationFn, log) : (req, res, next) => next(), QueryParamsValidator(queryParams, log), BodyParamsValidator(bodyParams, log), ...GetExpressMiddlewares(middlewares, log));
         return this;    
     }
     
@@ -80,8 +90,12 @@ class Router {
         app.use(this.baseUrl, this.router);
     }
 
+    static setAuthentication(fn){
+        _authenticationFn = fn;
+    }
+
 
 }
 
 
-module.exports = (moduleName, baseUrl) => new Router(moduleName, baseUrl);
+module.exports = Object.assign((moduleName, baseUrl) => new Router(moduleName, baseUrl), { setAuthentication: Router.setAuthentication } );

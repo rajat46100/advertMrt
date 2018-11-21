@@ -8,7 +8,7 @@ module.exports = new class extends BaseModel{
 
     static getSchema(){
         return{
-            username: { type:String, required:true },
+            email: { type:String, required:true },
             password:{ type:String, required: true }
         }
     }

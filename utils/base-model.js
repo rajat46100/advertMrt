@@ -19,6 +19,10 @@ class BaseModel {
         this.model.findOne(query);
     }
 
+    create(data){
+        this.model.create(data);
+    }
+
     
 
 }
