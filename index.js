@@ -1,7 +1,7 @@
 const express = require('express');
 const middlewares = require('./utils/middlewares');
 const config = Object.assign(require('config'), process.env);
-const { Router, InitializeDb, logger } = require('./utils');
+const { Router, InitializeDb } = require('./utils');
 const { Authentication } = require('./modules/Auth/middlewares');
 const morgan = require('morgan');
 

@@ -63,7 +63,6 @@ const _getBodyParam = (obj) => {
             in: "body",
             name: "body",
             type: "object",
-            required: true,
             properties: schema
         }
     }
