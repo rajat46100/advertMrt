@@ -51,7 +51,10 @@ const MiddlewareWrapper = (fn, log, context) =>
           responseTime: (Date.now() - startTime) / 1000
         });
       }
-      return responses(res).internalServerError(err);
+      console.log(err);
+      const error = err instanceof ErrorHandler ? err : ErrorHandler.UnhandledError();
+
+      return responses(res).internalServerError(error);
     }
   };
 

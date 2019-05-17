@@ -5,47 +5,50 @@ const Joi = require('joi');
 const router = Router('Auth', '/auth');
 
 router
-  .get(
-    '/login/:id/register',
-    {
-      info: 'Get Login Info',
-      queryParams: {
-        test: Joi.boolean().required()
-      },
-      auth: true,
-      response: {
-        ok: '',
-        created: ''
-      },
-      log: 'info'
-    },
-
-    [AuthController.forgotPassword]
-  )
   .post(
-    '/register',
+    '/send-otp',
     {
-      info: 'Create a new user',
       bodyParams: {
-        name: Joi.string().required()
+        mobileNumber: Joi.string()
       },
       responses: {
-        created: 'When user is created successfully'
+        ok: 'If successfully is successfully generated',
+        internalServerError: 'In case of server error'
       }
     },
-    [AuthController.register]
+    [AuthController.sendOtp]
   )
   .post(
-    '/login',
+    '/verify-otp',
     {
-      info: 'Login Service For User',
       bodyParams: {
-        email: Joi.string().required(),
-        password: Joi.string().required()
+        mobileNumber: Joi.string(),
+        otp: Joi.string().length(4)
+      },
+      responses: {
+        ok: 'If successfully is successfully generated',
+        internalServerError: 'In case of server error',
+        badRequest: 'If wrong otp and mobile number combination entered'
+      }
+    },
+    [AuthController.verifyOTP]
+  )
+  .post(
+    '/update-profile',
+    {
+      bodyParams: {
+        name: Joi.string(),
+        city: Joi.string()
+      },
+      responses: {
+        ok: 'If successfully is successfully generated',
+        internalServerError: 'In case of server error',
+        unauthorized: 'If invalid token supplied or token expired'
       },
       auth: true
     },
-    [AuthController.login]
+
+    [AuthController.updateProfile]
   );
 
 module.exports = router;
